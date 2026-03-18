@@ -5,7 +5,7 @@ from typing import Dict, Literal
 class GroqLLMService:
     def __init__(self, api_key: str):
         self.client = AsyncGroq(api_key=api_key)
-        self.model = "llama-3.3-70b-versatile"
+        self.model = "llama-3.1-8b-instant"
         self.temperature = 0.2
         
         # Mode configurations
@@ -24,11 +24,8 @@ class GroqLLMService:
                 "max_tokens": 400,
                 "system_prompt": (
                     "You are an intelligent document analysis assistant. "
-                    "Provide detailed and accurate answers based on the provided document context. "
-                    "Answer the user's question directly using only information from the document. "
-                    "If the document contains medical information, provide clinical analysis. "
-                    "If the document contains other information (resume, reports, etc), provide relevant insights. "
-                    "Be concise but comprehensive. "
+                    "Answer the user's question directly and concisely using only information from the document. "
+                    "Do NOT provide a full clinical assessment or summarize the document unless explicitly asked. "
                     "Always cite specific parts of the document when referencing information."
                 )
             }
@@ -64,7 +61,7 @@ class GroqLLMService:
 
 Query: {query}
 
-Provide your clinical assessment based on the context above."""
+Please answer the query directly using only the provided context."""
         
         # Call Groq API
         response = await self.client.chat.completions.create(

@@ -1,48 +1,51 @@
-const { scaleDownCompress } = require('../services/scaleDown');
-const { getStructuredRecommendation } = require('../services/structuredLLM');
+const { getStructuredRecommendation } = require('../services/hybridLLM');
 const { verifyRecommendation } = require('../services/structuredVerification');
 const { calculateStructuredConfidence } = require('../services/structuredConfidence');
+const { compressText } = require('../services/compression');
 const { countTokens } = require('../utils/tokenCounter');
-const { logAnalytics } = require('../services/analyticsLogger');
-const { validateTriageInput } = require('../utils/validation');
-const { successResponse } = require('../utils/responseFormatter');
-const { asyncHandler } = require('../middleware/errorHandler');
 const logger = require('../utils/logger');
 
-const compareApproaches = asyncHandler(async (req, res) => {
-  const { patientHistory, emergencyDescription } = req.body;
-  const { scaleDown, llm } = req.apiKeys;
+async function compareApproaches(req, res) {
+  const startTime = Date.now();
 
-  validateTriageInput(patientHistory, emergencyDescription);
+  try {
+    const { patientHistory, emergencyDescription } = req.body;
 
-  const [naive, optimized] = await Promise.all([
-    processNaive(patientHistory, emergencyDescription, llm),
-    processOptimized(patientHistory, emergencyDescription, scaleDown, llm)
-  ]);
+    if (!patientHistory || !emergencyDescription) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing patientHistory or emergencyDescription'
+      });
+    }
 
-  logAnalytics({
-    originalTokens: naive.tokens,
-    compressedTokens: optimized.tokens,
-    reductionPercent: optimized.reduction_percent,
-    compressionMs: null,
-    recommendationMs: optimized.latency_ms,
-    verificationMs: null,
-    confidenceMs: null,
-    totalMs: optimized.latency_ms,
-    confidenceScore: optimized.confidence.score,
-    verificationStatus: optimized.verification.status,
-    mode: 'comparison'
-  });
+    // Run naive and optimized in parallel using hybrid Groq+Ollama
+    const [naive, optimized] = await Promise.all([
+      processNaive(patientHistory, emergencyDescription),
+      processOptimized(patientHistory, emergencyDescription)
+    ]);
 
-  logger.info('A/B comparison completed');
-  res.json(successResponse({ naive, optimized }));
-});
+    logger.info(`A/B comparison completed in ${Date.now() - startTime}ms`);
 
-async function processNaive(patientHistory, emergencyDescription, llm) {
+    res.json({
+      success: true,
+      data: { naive, optimized }
+    });
+  } catch (error) {
+    logger.error(`Comparison error: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Comparison failed',
+      message: error.message
+    });
+  }
+}
+
+async function processNaive(patientHistory, emergencyDescription) {
   const start = Date.now();
-  const tokens = countTokens(`${emergencyDescription}\n${patientHistory}`);
+  const fullText = `${emergencyDescription}\n${patientHistory}`;
+  const tokens = countTokens(fullText);
 
-  const recommendation = await getStructuredRecommendation(patientHistory, emergencyDescription, llm);
+  const recommendation = await getStructuredRecommendation(patientHistory, emergencyDescription);
   const verification = verifyRecommendation(patientHistory, emergencyDescription, recommendation);
   const confidence = calculateStructuredConfidence(verification, recommendation, 0);
 
@@ -56,23 +59,29 @@ async function processNaive(patientHistory, emergencyDescription, llm) {
   };
 }
 
-async function processOptimized(patientHistory, emergencyDescription, scaleDownKey, llmKey) {
+async function processOptimized(patientHistory, emergencyDescription) {
   const start = Date.now();
-  
-  const compression = await scaleDownCompress(patientHistory, emergencyDescription, scaleDownKey);
-  const recommendation = await getStructuredRecommendation(compression.compressed_text, emergencyDescription, llmKey);
-  const verification = verifyRecommendation(compression.compressed_text, emergencyDescription, recommendation);
-  const confidence = calculateStructuredConfidence(verification, recommendation, compression.reduction_percent);
+
+  // Compress using local rule-based compression
+  const fullText = `${patientHistory}\n\nEmergency: ${emergencyDescription}`;
+  const compressed = compressText(fullText);
+  const originalTokens = countTokens(fullText);
+  const compressedTokens = countTokens(compressed);
+  const reductionPercent = ((originalTokens - compressedTokens) / originalTokens * 100).toFixed(2);
+
+  const recommendation = await getStructuredRecommendation(compressed, emergencyDescription);
+  const verification = verifyRecommendation(compressed, emergencyDescription, recommendation);
+  const confidence = calculateStructuredConfidence(verification, recommendation, parseFloat(reductionPercent));
 
   return {
-    tokens: compression.compressed_tokens,
-    original_tokens: compression.original_tokens,
-    reduction_percent: compression.reduction_percent,
+    tokens: compressedTokens,
+    original_tokens: originalTokens,
+    reduction_percent: parseFloat(reductionPercent),
     recommendation,
     verification,
     confidence,
     latency_ms: Date.now() - start,
-    estimated_cost: (compression.compressed_tokens / 1000 * 0.0015).toFixed(4)
+    estimated_cost: (compressedTokens / 1000 * 0.0015).toFixed(4)
   };
 }
 

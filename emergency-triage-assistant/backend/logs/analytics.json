@@ -178,5 +178,59 @@
     "confidence_score": "70.00",
     "verification_status": "Mostly Verified",
     "mode": "optimized"
+  },
+  {
+    "timestamp": "2026-03-18T04:56:10.612Z",
+    "token_counts": {
+      "original": 1709,
+      "compressed": 726,
+      "reduction_percent": 57.52
+    },
+    "latency_metrics": {
+      "compression_ms": 30063,
+      "recommendation_ms": 29251,
+      "verification_ms": null,
+      "confidence_ms": 1,
+      "total_ms": 59315
+    },
+    "confidence_score": "70.00",
+    "verification_status": "Mostly Verified",
+    "mode": "optimized"
+  },
+  {
+    "timestamp": "2026-03-18T05:04:43.868Z",
+    "token_counts": {
+      "original": 1709,
+      "compressed": 726,
+      "reduction_percent": 57.52
+    },
+    "latency_metrics": {
+      "compression_ms": 30030,
+      "recommendation_ms": 24981,
+      "verification_ms": null,
+      "confidence_ms": 1,
+      "total_ms": 55012
+    },
+    "confidence_score": "60.00",
+    "verification_status": "Mostly Verified",
+    "mode": "optimized"
+  },
+  {
+    "timestamp": "2026-03-18T06:58:59.908Z",
+    "token_counts": {
+      "original": 1709,
+      "compressed": 726,
+      "reduction_percent": 57.52
+    },
+    "latency_metrics": {
+      "compression_ms": 30031,
+      "recommendation_ms": 24805,
+      "verification_ms": null,
+      "confidence_ms": null,
+      "total_ms": 54836
+    },
+    "confidence_score": "75.00",
+    "verification_status": "Verified",
+    "mode": "optimized"
   }
 ]

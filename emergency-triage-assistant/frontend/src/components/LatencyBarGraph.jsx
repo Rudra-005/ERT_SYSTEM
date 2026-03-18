@@ -2,13 +2,13 @@ import { motion } from 'framer-motion';
 
 export default function LatencyBarGraph({ performance }) {
   const stages = [
-    { name: 'Compression', value: performance.compression_ms, color: 'bg-blue-500' },
-    { name: 'Recommendation', value: performance.recommendation_ms, color: 'bg-indigo-500' },
-    { name: 'Verification', value: performance.verification_ms, color: 'bg-emerald-500' },
-    { name: 'Confidence', value: performance.confidence_ms, color: 'bg-amber-500' }
+    { name: 'Compression', value: performance.compression_ms || 0, color: 'bg-blue-500' },
+    { name: 'Recommendation', value: performance.recommendation_ms || 0, color: 'bg-indigo-500' },
+    { name: 'Verification', value: performance.verification_ms || 0, color: 'bg-emerald-500' },
+    { name: 'Confidence', value: performance.confidence_ms || 0, color: 'bg-amber-500' }
   ];
 
-  const maxValue = Math.max(...stages.map(s => s.value));
+  const maxValue = Math.max(1, ...stages.map(s => s.value));
 
   return (
     <div className="space-y-4">

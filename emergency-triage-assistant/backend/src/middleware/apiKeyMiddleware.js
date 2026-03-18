@@ -1,29 +1,15 @@
 const keyStore = require('../utils/keyStore');
 
 function validateApiKey(key) {
-  return key && typeof key === 'string' && key.startsWith('gsk_') && key.length > 20;
+  // Ollama doesn't require API keys, always return true
+  return true;
 }
 
 function apiKeyMiddleware(req, res, next) {
-  const sessionId = req.headers['x-session-id'];
-  
-  // Try session-based keys first (optional override)
-  if (sessionId) {
-    const keys = keyStore.getKeys(sessionId);
-    if (keys && validateApiKey(keys.scaleDown) && validateApiKey(keys.llm)) {
-      req.apiKeys = { scaleDown: keys.scaleDown, llm: keys.llm };
-      return next();
-    }
-  }
-
-  // Fall back to .env key (Groq)
-  const envKey = process.env.GROQ_API_KEY;
-  if (envKey && validateApiKey(envKey)) {
-    req.apiKeys = { scaleDown: envKey, llm: envKey };
-    return next();
-  }
-
-  return res.status(401).json({ error: 'No API keys available. Set GROQ_API_KEY in .env or configure via API.' });
+  // Since Ollama runs locally without API keys, we just pass through
+  // Keep the structure for backward compatibility
+  req.apiKeys = { scaleDown: 'local', llm: 'local' };
+  return next();
 }
 
 module.exports = { apiKeyMiddleware, validateApiKey };

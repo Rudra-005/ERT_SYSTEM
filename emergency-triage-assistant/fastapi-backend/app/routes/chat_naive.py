@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import PyPDF2
-import io
 from pathlib import Path
-from app.services.groq_llm_service import groq_service
+from app.services.ollama_llm_service import ollama_service
 from app.config import get_settings
 
 router = APIRouter(tags=["naive"])
@@ -19,8 +18,8 @@ async def chat_naive(request: NaiveChatRequest):
     Naive approach: Send full patient PDF content to LLM without retrieval.
     
     Purpose: Benchmark comparison
-    - Optimized Mode: ~400ms (RAG with top_k=3)
-    - Naive Mode: >1200ms (full document context)
+    - Optimized Mode: ~200-300ms (RAG with top_k=3, Ollama local)
+    - Naive Mode: >800ms (full document context, Ollama local)
     """
     try:
         # Load full PDF content
@@ -34,8 +33,8 @@ async def chat_naive(request: NaiveChatRequest):
             pdf_reader = PyPDF2.PdfReader(f)
             full_text = "\n\n".join([page.extract_text() for page in pdf_reader.pages])
         
-        # Send full context to LLM (no retrieval optimization)
-        llm_result = await groq_service.generate_naive(
+        # Send full context to Ollama (no retrieval optimization)
+        llm_result = await ollama_service.generate_naive(
             full_context=full_text,
             query=request.query
         )

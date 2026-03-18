@@ -361,7 +361,7 @@ export default function App() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="dash-card flex items-center justify-center">
                   <CircularProgress
-                    percentage={parseFloat(result.compressed_history ? 50 : 0)}
+                    percentage={parseFloat(result.tokenStats?.reduction || 0).toFixed(0)}
                     label="Token Reduction"
                   />
                 </div>
@@ -371,7 +371,7 @@ export default function App() {
                 </div>
 
                 <div className="dash-card flex items-center justify-center">
-                  <ConfidenceGauge score={parseFloat(result.confidence.score)} />
+                  <ConfidenceGauge score={parseFloat(result.confidence?.score || 0).toFixed(0)} />
                 </div>
               </div>
 

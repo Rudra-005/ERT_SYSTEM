@@ -1,45 +1,21 @@
-const axios = require('axios');
+const { ragQuery } = require('../../ollamaService');
 
-async function queryGroqLLM(context, query, mode, apiKey) {
-  const systemPrompt = mode === 'emergency' 
-    ? 'You are an emergency medical AI. Provide immediate, actionable triage recommendations based on the context.'
-    : 'You are a medical AI assistant. Provide detailed, comprehensive analysis based on the context.';
-
-  const userPrompt = `Context from patient records:\n${context}\n\nQuery: ${query}\n\nProvide your answer with citations to specific parts of the context.`;
-
-  const startTime = Date.now();
-
+async function queryOllamaLLM(context, query, mode = 'emergency') {
   try {
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        model: 'mixtral-8x7b-32768',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: mode === 'emergency' ? 0.1 : 0.3,
-        max_tokens: mode === 'emergency' ? 500 : 1000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const latency = Date.now() - startTime;
-
+    const result = await ragQuery(context, query, mode);
+    
     return {
-      answer: response.data.choices[0].message.content,
-      model: 'mixtral-8x7b-32768',
-      latency_ms: latency,
-      tokens_used: response.data.usage
+      answer: result.response,
+      model: result.model,
+      latency_ms: result.total_latency_ms,
+      tokens_used: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     };
   } catch (error) {
-    throw new Error(`Groq API error: ${error.message}`);
+    throw new Error(`Ollama RAG query error: ${error.message}`);
   }
 }
 
-module.exports = { queryGroqLLM };
+// Keep the old function name for backward compatibility
+const queryGroqLLM = queryOllamaLLM;
+
+module.exports = { queryOllamaLLM, queryGroqLLM };

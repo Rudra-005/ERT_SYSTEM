@@ -1,7 +1,9 @@
-const axios = require('axios');
+const { callOllama, formatPhi3Prompt } = require('../ollamaService');
 
-async function getLLMRelevanceFilter(ruleFilteredText, emergencyDescription, apiKey) {
-  const prompt = `Given this emergency: "${emergencyDescription}"
+async function getLLMRelevanceFilter(ruleFilteredText, emergencyDescription) {
+  const systemMessage = 'You are a medical AI assistant that extracts relevant information from patient records.';
+  
+  const userMessage = `Given this emergency: "${emergencyDescription}"
 
 Extract ONLY the relevant medical records from the patient history below. Preserve exact wording. Remove irrelevant information.
 
@@ -10,29 +12,13 @@ ${ruleFilteredText}
 
 Return only the relevant excerpts:`;
 
-  try {
-    // Use Groq API with system message
-    const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'You are a medical AI assistant that extracts relevant information.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 500,
-        temperature: 0.1
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+  const prompt = formatPhi3Prompt(systemMessage, userMessage);
 
-    return response.data.choices[0].message.content.trim();
+  try {
+    const result = await callOllama(prompt, { num_predict: 500 });
+    return result.response.trim();
   } catch (error) {
+    console.error('LLM filter error:', error.message);
     return ruleFilteredText;
   }
 }

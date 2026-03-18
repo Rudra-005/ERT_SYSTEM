@@ -1,0 +1,64 @@
+{
+  "chest_pain,shortness_of_breath:160-95-98-95:45-M": {
+    "level": "CRITICAL",
+    "action": "Immediate cardiac evaluation. Obtain ECG, cardiac enzymes. Consider MI protocol.",
+    "confidence": 0.95
+  },
+  "chest_pain:180-110-99-98:55-M": {
+    "level": "CRITICAL",
+    "action": "Hypertensive emergency with chest pain. Immediate cardiology consult.",
+    "confidence": 0.98
+  },
+  "sudden_weakness,facial_droop,speech_difficulty:140-85-98-98:65-F": {
+    "level": "CRITICAL",
+    "action": "Possible stroke. Activate stroke protocol immediately. CT head stat.",
+    "confidence": 0.97
+  },
+  "shortness_of_breath,wheezing:130-80-99-88:35-F": {
+    "level": "URGENT",
+    "action": "Severe asthma exacerbation. Nebulizer treatment, consider steroids.",
+    "confidence": 0.92
+  },
+  "fever,headache,neck_stiffness:120-70-104-98:25-M": {
+    "level": "CRITICAL",
+    "action": "Possible meningitis. Immediate lumbar puncture, antibiotics, isolation.",
+    "confidence": 0.96
+  },
+  "head_injury,confusion,vomiting:110-70-99-98:28-M": {
+    "level": "URGENT",
+    "action": "Possible traumatic brain injury. CT head, neurological monitoring.",
+    "confidence": 0.9
+  },
+  "facial_swelling,difficulty_swallowing,hives:90-60-98-98:22-F": {
+    "level": "CRITICAL",
+    "action": "Anaphylaxis. Epinephrine immediately, IV access, airway monitoring.",
+    "confidence": 0.98
+  },
+  "fever,irritability,poor_feeding:100-60-104-98:3-M": {
+    "level": "URGENT",
+    "action": "Pediatric fever workup. Blood cultures, urinalysis, consider sepsis.",
+    "confidence": 0.88
+  },
+  "minor_laceration:120-80-98-98:25-M": {
+    "level": "STANDARD",
+    "action": "Wound care, tetanus status, consider sutures if needed.",
+    "confidence": 0.85
+  },
+  "suicidal_ideation,agitation:130-85-98-98:35-F": {
+    "level": "URGENT",
+    "action": "Psychiatric evaluation, safety precautions, consider 1:1 monitoring.",
+    "confidence": 0.9
+  },
+  "headache:190-125-98-98:55-M": {
+    "level": "CRITICAL",
+    "action": "Hypertensive crisis. Immediate BP management required.",
+    "confidence": 0.95,
+    "rule": "hypertensive_crisis"
+  },
+  "shortness_of_breath:130-80-99-82:70-M": {
+    "level": "CRITICAL",
+    "action": "Severe hypoxemia. Immediate oxygen therapy and airway assessment.",
+    "confidence": 0.98,
+    "rule": "severe_hypoxemia"
+  }
+}

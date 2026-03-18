@@ -26,15 +26,14 @@ function extractRelevantByRules(patientHistory, emergencyDescription) {
   return relevantLines.join('\n');
 }
 
-async function scaleDownCompress(patientHistory, emergencyDescription, apiKey) {
+async function scaleDownCompress(patientHistory, emergencyDescription) {
   const startTime = Date.now();
   
   const ruleFiltered = extractRelevantByRules(patientHistory, emergencyDescription);
   
   const llmFiltered = await getLLMRelevanceFilter(
     ruleFiltered, 
-    emergencyDescription, 
-    apiKey
+    emergencyDescription
   );
   
   const originalTokens = countTokens(patientHistory);
