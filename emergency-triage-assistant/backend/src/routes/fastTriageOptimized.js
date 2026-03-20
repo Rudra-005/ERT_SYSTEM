@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { hybridCall, getStructuredRecommendation, getDetailedRecommendation, getFastSummary } = require('../services/hybridLLM');
+const { analyzeCase } = require('../controllers/triageController');
 const { compressText } = require('../services/compression');
 const { verifyHallucination } = require('../services/verification');
 const { calculateConfidence } = require('../services/confidence');
@@ -18,6 +19,8 @@ const { countTokens, calculateTokenReduction } = require('../utils/tokenCounter'
  */
 router.post('/', async (req, res) => {
   const requestStart = Date.now();
+  console.log('🔄 Fast triage request received at:', new Date().toISOString());
+  console.log('Request body keys:', Object.keys(req.body));
 
   try {
     const { patientHistory, emergencyDescription, caseDescription } = req.body;
@@ -26,11 +29,14 @@ router.post('/', async (req, res) => {
     const emergency = emergencyDescription || caseDescription || '';
 
     if (!history && !emergency) {
+      console.log('⚠️ Missing required fields');
       return res.status(400).json({
         success: false,
         error: 'Please provide patientHistory and emergencyDescription',
       });
     }
+
+    console.log('📝 Processing case...');
 
     // ===== STAGE 1: COMPRESSION (1-5ms) =====
     const t1 = Date.now();
@@ -38,44 +44,61 @@ router.post('/', async (req, res) => {
     const compressed = compressText(fullText);
     const compression_ms = Date.now() - t1;
 
-    // ===== STAGE 2: FAST SUMMARY (0-350ms) =====
+    const tokenStats = calculateTokenReduction(fullText, compressed);
+
+    // ===== STAGE 2: STRUCTURED RECOMMENDATION (150-600ms) =====
     const t2 = Date.now();
-    const recommendation = await getFastSummary(history || compressed, emergency);
+    const recommendation = await getStructuredRecommendation(history || compressed, emergency);
     const recommendation_ms = Date.now() - t2;
 
-    const total_ms = Date.now() - requestStart;
+    // ===== STAGE 3: VERIFICATION (5-15ms) =====
+    const t3 = Date.now();
+    const verification = verifyHallucination(fullText, JSON.stringify(recommendation));
+    const verification_ms = Date.now() - t3;
 
-    // Build compact response mapping exactly to the schema App.jsx expects to avoid black screens
-    res.json({
+    // ===== STAGE 4: CONFIDENCE (1-3ms) =====
+    const t4 = Date.now();
+    const confidence = calculateConfidence(verification.score, tokenStats.reduction);
+    const confidence_ms = Date.now() - t4;
+
+    const total_ms = Date.now() - requestStart;
+    console.log(`✅ Optimized analysis complete: ${total_ms}ms (compression: ${compression_ms}ms, llm: ${recommendation_ms}ms, verification: ${verification_ms}ms)`);
+
+    // Build response mapping to the schema App.jsx expects
+    const response = {
       success: true,
-      mode: 'fast-summary',
+      mode: 'optimized',
       data: {
         original: fullText,
         compressed_history: compressed || 'No compression applied',
         recommendation: {
-          immediate_action: recommendation.immediate_action || 'Emergency evaluation required',
-          differential_diagnosis: [recommendation.key_findings || 'Pending clinical assessment'],
-          supporting_evidence: recommendation.key_findings || '',
-          risk_considerations: `Priority: ${recommendation.priority || 'Urgent'}`,
-          uncertainty_level: 'Medium',
-          case_summary: recommendation.summary || 'Requires clinical evaluation'
+          immediate_action: recommendation.immediate_action || recommendation.case_summary || 'Emergency evaluation required',
+          differential_diagnosis: recommendation.differential_diagnosis || ['Clinical assessment pending'],
+          supporting_evidence: recommendation.supporting_evidence || '',
+          risk_considerations: recommendation.risk_considerations || 'Requires evaluation',
+          uncertainty_level: recommendation.uncertainty_level || 'Medium',
+          case_summary: recommendation.case_summary || 'Requires clinical evaluation',
+          priority: recommendation.risk_considerations?.includes('High') ? 'High' : 'Medium',
+          clinical_tags: recommendation.clinical_tags || []
         },
-        tokenStats: { reduction: 'Aggressive Fast Mode' },
-        verification: { status: 'Fast Assessed' },
-        confidence: { score: 95, reasoning: 'Speed optimized' },
+        tokenStats,
+        verification: { status: verification.status || 'Verified', score: verification.score },
+        confidence: { score: confidence.score || 85, reasoning: confidence.reasoning || 'Optimized pipeline' },
         performance: {
           total_ms,
           compression_ms,
           recommendation_ms,
-          verification_ms: 0,
+          verification_ms,
+          confidence_ms,
           provider: recommendation.provider || 'groq',
           fromCache: recommendation.fromCache || false,
-          grade: total_ms <= 400 ? '🟢 EXCELLENT' : total_ms <= 600 ? '🟡 GOOD' : '🔴 SLOW'
+          grade: total_ms <= 400 ? '🟢 EXCELLENT' : total_ms <= 800 ? '🟡 GOOD' : '🔴 SLOW'
         }
       }
-    });
+    };
 
-    console.log(`⚡ FAST TRIAGE: ${total_ms}ms ${recommendation.fromCache ? '(cached)' : '(Groq)'}`);
+    res.json(response);
+    console.log(`⚡ OPTIMIZED TRIAGE: ${total_ms}ms ${recommendation.fromCache ? '(cached)' : '(AI)'}`);
 
   } catch (error) {
     console.error('❌ Triage error:', error.message);
@@ -99,6 +122,8 @@ router.post('/optimized', async (req, res) => {
   req.url = '/';
   router.handle(req, res);
 });
+
+router.post('/analyze-case', analyzeCase);
 
 /**
  * POST /api/triage/naive
@@ -155,6 +180,8 @@ router.post('/naive', async (req, res) => {
  */
 router.post('/detailed', async (req, res) => {
   const requestStart = Date.now();
+  console.log('🔄 Detailed triage request received at:', new Date().toISOString());
+  console.log('Request body keys:', Object.keys(req.body));
 
   try {
     const { patientHistory, emergencyDescription, caseDescription } = req.body;
@@ -203,8 +230,10 @@ router.post('/detailed', async (req, res) => {
     performance.grade = performance.total_ms <= 800 ? 'EXCELLENT' :
                         performance.total_ms <= 1500 ? 'GOOD' : 'NEEDS_OPTIMIZATION';
 
+    console.log(`✅ Detailed analysis complete: ${performance.total_ms}ms (compression: ${performance.compression_ms}ms, llm: ${performance.recommendation_ms}ms, verification: ${performance.verification_ms}ms)`);
+
     // Build comprehensive response with detailed information
-    res.json({
+    const finalResponse = {
       success: true,
       mode: 'detailed-groq-ollama',
       data: {
@@ -256,12 +285,16 @@ router.post('/detailed', async (req, res) => {
         },
         performance
       }
-    });
+    };
+
+    console.log('📤 Sending detailed response...');
+    res.json(finalResponse);
 
     console.log(`✅ Detailed triage: ${performance.total_ms}ms (${performance.provider}${performance.fromCache ? ' cached' : ''})`);
 
   } catch (error) {
     console.error('❌ Detailed triage error:', error.message);
+    console.error('Stack:', error.stack);
     const totalLatency = Date.now() - requestStart;
 
     res.status(500).json({

@@ -1,0 +1,31 @@
+{
+  "llm_config": {
+    "temperature": 0.8,
+    "top_p": 0.9,
+    "max_retries": 3,
+    "model": "gpt-4"
+  },
+  "validation_rules": {
+    "min_differential_diagnoses": 2,
+    "min_confidence": 50,
+    "max_confidence": 100,
+    "blocked_generic_phrases": [
+      "clinical evaluation needed",
+      "manual bedside triage",
+      "further assessment required",
+      "consult physician",
+      "standard protocol",
+      "high priority",
+      "undefined"
+    ],
+    "required_fields": [
+      "immediateAction",
+      "differentialDiagnosis",
+      "riskLevel",
+      "confidence",
+      "summary",
+      "supportingEvidence"
+    ],
+    "valid_risk_levels": ["Low", "Medium", "High", "Critical"]
+  }
+}

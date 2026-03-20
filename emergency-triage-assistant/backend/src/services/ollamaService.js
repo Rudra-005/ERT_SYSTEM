@@ -41,7 +41,7 @@ async function warmUpOllama() {
       prompt: "ready",
       stream: false,
       options: { num_predict: 1 }
-    }, { timeout: 15000 }); // Can take a while on raw startup
+    }, { timeout: 60000 }); // Can take a while on raw startup (increased to 60s)
     
     console.log('\x1b[32mOllama model warm and ready\x1b[0m');
     return true;

@@ -34,9 +34,9 @@ export const patients = [
         vitals: {
           bp: "180/110 mmHg",
           pulse: "115 bpm",
-          temp: "98.2°F",
+          temperature: "98.2°F",
           spo2: "92%",
-          respRate: "24/min",
+          respiratoryRate: "24/min",
         },
         aiAssessment:
           "High suspicion of Acute OMI / Myocardial Infarction given age, HTN history, and crushing chest pain radiating to the arm. Vitals indicate hypertensive crisis and potential hypoxia.",
@@ -55,9 +55,9 @@ export const patients = [
         vitals: {
           bp: "175/105 mmHg",
           pulse: "88 bpm",
-          temp: "98.4°F",
+          temperature: "98.4°F",
           spo2: "98%",
-          respRate: "16/min",
+          respiratoryRate: "16/min",
         },
         aiAssessment:
           "Hypertensive urgency. No focal neurological deficits reported, but blood pressure is significantly elevated. Requires prompt evaluation.",
@@ -76,9 +76,9 @@ export const patients = [
         vitals: {
           bp: "150/92 mmHg",
           pulse: "102 bpm",
-          temp: "98.6°F",
+          temperature: "98.6°F",
           spo2: "96%",
-          respRate: "20/min",
+          respiratoryRate: "20/min",
         },
         aiAssessment:
           "Tachycardia and mild dyspnea in a hypertensive patient. Possible early signs of cardiovascular decline or anxiety.",
@@ -159,9 +159,9 @@ export const patients = [
         vitals: {
           bp: "110/70 mmHg",
           pulse: "110 bpm",
-          temp: "97.8°F",
+          temperature: "97.8°F",
           spo2: "99%",
-          respRate: "18/min",
+          respiratoryRate: "18/min",
         },
         aiAssessment:
           "Classic presentation of acute hypoglycemia in a Type 1 Diabetic patient. Altered mental status requires immediate glucose administration.",
@@ -180,9 +180,9 @@ export const patients = [
         vitals: {
           bp: "90/60 mmHg",
           pulse: "125 bpm",
-          temp: "99.1°F",
+          temperature: "99.1°F",
           spo2: "97%",
-          respRate: "28/min",
+          respiratoryRate: "28/min",
         },
         aiAssessment:
           "High risk of Diabetic Ketoacidosis (DKA) due to GI symptoms, tachycardia, tachypnea, and fruity breath. Requires aggressive fluid protocol and IV insulin.",
@@ -201,9 +201,9 @@ export const patients = [
         vitals: {
           bp: "115/75 mmHg",
           pulse: "82 bpm",
-          temp: "99.4°F",
+          temperature: "99.4°F",
           spo2: "98%",
-          respRate: "14/min",
+          respiratoryRate: "14/min",
         },
         aiAssessment:
           "Diabetic foot ulcer with potential early cellulitis. Requires wound care, antibiotics, and strict glycemic control to prevent necrotization.",
@@ -285,9 +285,9 @@ export const patients = [
         vitals: {
           bp: "195/110 mmHg",
           pulse: "115 bpm (Irregular)",
-          temp: "98.0°F",
+          temperature: "98.0°F",
           spo2: "95%",
-          respRate: "20/min",
+          respiratoryRate: "20/min",
         },
         aiAssessment:
           "High probability of Acute Ischemic Stroke (LVO). Patient has history of A-Fib. Absolute time-critical emergency requiring immediate CT head and potential thrombolysis/thrombectomy.",
@@ -407,9 +407,9 @@ export const patients = [
         vitals: {
           bp: "85/50 mmHg",
           pulse: "135 bpm",
-          temp: "98.9°F",
+          temperature: "98.9°F",
           spo2: "89%",
-          respRate: "32/min",
+          respiratoryRate: "32/min",
         },
         aiAssessment:
           "Type 1 IgE-mediated Anaphylactic Shock. Imminent airway compromise and distributive shock. Requires immediate IM Epinephrine.",
@@ -529,9 +529,9 @@ export const patients = [
         vitals: {
           bp: "85/45 mmHg",
           pulse: "130 bpm",
-          temp: "96.5°F",
+          temperature: "96.5°F",
           spo2: "88%",
-          respRate: "8/min (Gasping)",
+          respiratoryRate: "8/min (Gasping)",
         },
         aiAssessment:
           "Level 1 Trauma. Polytrauma with likely Traumatic Brain Injury, hemorrhagic shock, and airway compromise. Initiate massive transfusion protocol and prepare for advanced airway.",
@@ -550,9 +550,9 @@ export const patients = [
         vitals: {
           bp: "100/65 mmHg",
           pulse: "115 bpm",
-          temp: "100.2°F",
+          temperature: "100.2°F",
           spo2: "86% (on Vent settings)",
-          respRate: "Vent controlled",
+          respiratoryRate: "Vent controlled",
         },
         aiAssessment:
           "Sudden desaturation in polytrauma ICU patient. Rule out pulmonary embolism, ARDS, or pneumothorax.",
@@ -654,9 +654,9 @@ export const patients = [
         vitals: {
           bp: "135/85 mmHg",
           pulse: "120 bpm",
-          temp: "98.8°F",
+          temperature: "98.8°F",
           spo2: "89%",
-          respRate: "28/min",
+          respiratoryRate: "28/min",
         },
         aiAssessment:
           "Status Asthmaticus. Hypoxia and tachypnea present. Prompt continuous bronchodilation and systemic corticosteroids required to prevent respiratory failure.",
@@ -675,9 +675,9 @@ export const patients = [
         vitals: {
           bp: "120/78 mmHg",
           pulse: "95 bpm",
-          temp: "99.0°F",
+          temperature: "99.0°F",
           spo2: "94%",
-          respRate: "20/min",
+          respiratoryRate: "20/min",
         },
         aiAssessment:
           "Moderate asthma exacerbation. Borderline oxygen saturation. Requires urgent bronchodilator therapy to assess reversibility.",
@@ -744,4 +744,115 @@ export const patients = [
       },
     ],
   },
+  {
+    id: "P007",
+    name: "Vikram Malhotra",
+    age: 26,
+    gender: "Male",
+    bloodGroup: "A-",
+    phone: "+91 91234 11111",
+    address: "Bandra West, Mumbai, Maharashtra",
+    password: "pat123",
+    role: "patient",
+    medicalHistory: {
+      allergies: ["None"],
+      chronicConditions: ["None"],
+      currentMedications: ["None"],
+      pastSurgeries: [],
+      familyHistory: [],
+    },
+    emergencyContact: {
+      name: "Sanjay Malhotra",
+      relation: "Father",
+      phone: "+91 91234 22222",
+    },
+    triageReports: [
+      {
+        reportId: "R019",
+        date: "2024-03-15",
+        chiefComplaint: "Mild ankle sprain during football",
+        severity: "LOW",
+        severityColor: "#22c55e",
+        vitals: { bp: "120/80", pulse: "72", temperature: "98.6", spo2: "100", respiratoryRate: "14" },
+        aiAssessment: "Stable vitals, localized orthopedic injury.",
+        diagnosis: "Grade 1 Ankle Sprain",
+        status: "Discharged"
+      }
+    ],
+    labReports: []
+  },
+  {
+    id: "P008",
+    name: "Ananya Iyer",
+    age: 31,
+    gender: "Female",
+    bloodGroup: "O+",
+    phone: "+91 91234 33333",
+    address: "Indiranagar, Bangalore, Karnataka",
+    password: "pat123",
+    role: "patient",
+    medicalHistory: {
+      allergies: ["Lactose Intolerance"],
+      chronicConditions: ["PCOS"],
+      currentMedications: ["Metformin"],
+      pastSurgeries: [],
+      familyHistory: ["Diabetes"],
+    },
+    emergencyContact: {
+      name: "Ravi Iyer",
+      relation: "Husband",
+      phone: "+91 91234 44444",
+    },
+    triageReports: [
+      {
+        reportId: "R020",
+        date: "2024-03-18",
+        chiefComplaint: "Moderate abdominal pain for 6 hours",
+        severity: "MEDIUM",
+        severityColor: "#eab308",
+        vitals: { bp: "135/88", pulse: "98", temperature: "100.2", spo2: "98", respiratoryRate: "18" },
+        aiAssessment: "Mild fever and abdominal pain. Possible early appendicitis or gastroenteritis.",
+        diagnosis: "Suspected Gastroenteritis",
+        status: "Under Observation"
+      }
+    ],
+    labReports: []
+  },
+  {
+    id: "P009",
+    name: "Rahul Mehra",
+    age: 42,
+    gender: "Male",
+    bloodGroup: "B+",
+    phone: "+91 91234 55555",
+    address: "Vasant Kunj, South Delhi, Delhi",
+    password: "pat123",
+    role: "patient",
+    medicalHistory: {
+      allergies: ["Pollen"],
+      chronicConditions: ["Seasonal Rhinitis"],
+      currentMedications: ["Cetirizine"],
+      pastSurgeries: [],
+      familyHistory: [],
+    },
+    emergencyContact: {
+      name: "Sonia Mehra",
+      relation: "Wife",
+      phone: "+91 91234 66666",
+    },
+    triageReports: [
+      {
+        reportId: "R021",
+        date: "2024-03-19",
+        chiefComplaint: "Sore throat and mild cough for 2 days",
+        severity: "LOW",
+        severityColor: "#22c55e",
+        vitals: { bp: "118/76", pulse: "68", temperature: "98.9", spo2: "99", respiratoryRate: "16" },
+        aiAssessment: "Simple upper respiratory presentation. Vitals stable.",
+        diagnosis: "Viral Pharyngitis",
+        status: "Discharged"
+      }
+    ],
+    labReports: []
+  }
 ];

@@ -28,9 +28,9 @@ export default function TriageResults({ results, onSave, onReAnalyze, onClose, o
       systolic: { normal: [90, 120], borderline: [120, 140] },
       diastolic: { normal: [60, 80], borderline: [80, 90] },
       pulse: { normal: [60, 100], borderline: [100, 110] },
-      temp: { normal: [97.0, 99.0], borderline: [99.0, 100.4] },
+      temperature: { normal: [97.0, 99.0], borderline: [99.0, 100.4] },
       spo2: { normal: [95, 100], borderline: [90, 95] },
-      respRate: { normal: [12, 20], borderline: [20, 24] },
+      respiratoryRate: { normal: [12, 20], borderline: [20, 24] },
       gcs: { normal: [15, 15], borderline: [13, 14] },
     };
 

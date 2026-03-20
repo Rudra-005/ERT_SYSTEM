@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { patients } from '../data/patients';
 import RunTriageModal from '../components/triage/RunTriageModal';
+import BackButton from '../components/common/BackButton';
 
 const SEVERITY = {
   CRITICAL: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', border: 'rgba(239,68,68,0.3)' },
@@ -172,41 +173,44 @@ export default function PatientsView() {
         {selectedPatient ? (
           <>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '24px' }}>
-              <div>
-                <h1 style={{ color: '#e5e7eb', fontSize: '24px', fontWeight: 700, margin: '0 0 8px' }}>
-                  {selectedPatient.name}
-                </h1>
-                <div style={{ display: 'flex', gap: '12px', fontSize: '13px', color: '#9ca3af' }}>
-                  <span>ID: {selectedPatient.id}</span>
-                  <span>•</span>
-                  <span>{selectedPatient.age} years</span>
-                  <span>•</span>
-                  <span>{selectedPatient.gender}</span>
-                  <span>•</span>
-                  <span>🩸 {selectedPatient.bloodGroup}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+              <BackButton />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flex: 1 }}>
+                <div>
+                  <h1 style={{ color: '#e5e7eb', fontSize: '24px', fontWeight: 700, margin: '0 0 8px' }}>
+                    {selectedPatient.name}
+                  </h1>
+                  <div style={{ display: 'flex', gap: '12px', fontSize: '13px', color: '#9ca3af' }}>
+                    <span>ID: {selectedPatient.id}</span>
+                    <span>•</span>
+                    <span>{selectedPatient.age} years</span>
+                    <span>•</span>
+                    <span>{selectedPatient.gender}</span>
+                    <span>•</span>
+                    <span>🩸 {selectedPatient.bloodGroup}</span>
+                  </div>
                 </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={handleRunNewTriage}
-                  style={{
-                    padding: '10px 16px',
-                    background: '#7c3aed',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#6d28d9'}
-                  onMouseLeave={(e) => e.target.style.background = '#7c3aed'}
-                >
-                  🩺 Run New Triage
-                </button>
+                
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleRunNewTriage}
+                    style={{
+                      padding: '10px 16px',
+                      background: '#7c3aed',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#6d28d9'}
+                    onMouseLeave={(e) => e.target.style.background = '#7c3aed'}
+                  >
+                    🩺 Run New Triage
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { processOptimized, processNaive } = require('../controllers/triageController');
+const { processOptimized, processNaive, analyzeCase } = require('../controllers/triageController');
 const { analyzeWithOllama } = require('../services/ollamaService');
 
 router.post('/optimized', processOptimized);
 router.post('/naive', processNaive);
+router.post('/analyze-case', analyzeCase);
 
 // AI-powered triage analysis endpoint
 router.post('/analyze', async (req, res) => {
