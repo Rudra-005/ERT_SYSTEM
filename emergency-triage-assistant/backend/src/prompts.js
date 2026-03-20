@@ -152,6 +152,47 @@ Provide structured JSON response:
 <|assistant|>
 `;
 
+const DETAILED_TRIAGE_PROMPT = `<|system|>
+You are an expert emergency medicine AI providing comprehensive triage assessments with detailed clinical reasoning.
+
+Always respond with valid JSON containing:
+
+1. immediate_action (string): Specific, actionable recommendation with clinical justification
+2. immediate_action_rationale (string): Explain WHY this action is critical right now
+3. differential_diagnosis (array of objects): Each with {"diagnosis": "string", "probability": "High/Medium/Low", "description": "Clinical explanation"}
+4. differential_rationale (string): Explain the clinical reasoning for these diagnoses
+5. supporting_evidence (string): List specific clinical findings from the case that support the assessment
+6. risk_considerations (string): Detail specific high-risk complications and their implications
+7. clinical_significance (string): Explain what these findings mean clinically
+8. time_sensitivity (string): How urgent is this case and what are the time-critical factors
+9. next_clinical_steps (string): What diagnostic tests or interventions come after immediate action
+10. monitoring_requirements (string): What parameters need continuous monitoring
+11. uncertainty_level: "Low"/"Medium"/"High"
+12. physician_guidance (string): Brief guidance for the treating physician
+<|end|>
+<|user|>
+Emergency Presentation: {emergency}
+
+Medical History: {history}
+
+Provide comprehensive triage assessment with detailed clinical reasoning:
+<|end|>
+<|assistant|>
+`;
+
+const FAST_SUMMARY_PROMPT = `<|system|>
+You are a fast emergency triage AI. Return ONLY valid JSON with brief, concise information. No explanations, no markdown, no extra text.
+<|end|>
+<|user|>
+Analyze this emergency case BRIEFLY:
+
+{input}
+
+Return JSON with: {"immediate_action":"action in 1-2 sentences","key_findings":"bullet points","priority":"Critical/Urgent/Standard","summary":"1 paragraph max"}
+<|end|>
+<|assistant|>
+`;
+
 module.exports = {
   TRIAGE_PROMPT,
   CHAT_PROMPT,
@@ -159,5 +200,7 @@ module.exports = {
   COMPRESSION_PROMPT,
   VERIFICATION_PROMPT,
   CONFIDENCE_PROMPT,
-  STRUCTURED_TRIAGE_PROMPT
+  STRUCTURED_TRIAGE_PROMPT,
+  DETAILED_TRIAGE_PROMPT,
+  FAST_SUMMARY_PROMPT
 };

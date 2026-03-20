@@ -1,3 +1,4 @@
+import api from '../config/axios';
 const API_BASE = 'http://localhost:5000/api';
 
 class ApiError extends Error {
@@ -8,48 +9,53 @@ class ApiError extends Error {
   }
 }
 
-async function handleResponse(response) {
-  const data = await response.json();
-
-  if (!response.ok) {
+const handleApiCall = async (callPromise) => {
+  try {
+    const response = await callPromise;
+    // Dispatch a global event for the LatencyBadge fixed UI to catch
+    if (response.data && response.data._client_latency) {
+       const event = new CustomEvent('api-latency-update', { detail: { latency: response.data._client_latency } });
+       window.dispatchEvent(event);
+    }
+    return response.data;
+  } catch (error) {
+    if (error.isTimeout) {
+      throw new ApiError(error.message, 408, null);
+    }
     throw new ApiError(
-      data.error || 'Request failed',
-      response.status,
-      data
+      error.response?.data?.error || 'Request failed',
+      error.response?.status || 500,
+      error.response?.data || null
     );
   }
-
-  return data;
-}
+};
 
 export async function processTriage(patientHistory, emergencyDescription) {
-  const response = await fetch(`${API_BASE}/triage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patientHistory, emergencyDescription })
-  });
+  return handleApiCall(api.post(`${API_BASE}/triage`, { patientHistory, emergencyDescription }));
+}
 
-  return handleResponse(response);
+export async function processDetailedTriage(patientHistory, emergencyDescription) {
+  return handleApiCall(api.post(`${API_BASE}/triage/detailed`, { patientHistory, emergencyDescription }));
 }
 
 export async function compareApproaches(patientHistory, emergencyDescription) {
-  const response = await fetch(`${API_BASE}/compare`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patientHistory, emergencyDescription })
-  });
-
-  return handleResponse(response);
+  return handleApiCall(api.post(`${API_BASE}/compare`, { patientHistory, emergencyDescription }));
 }
 
 export async function getLogs(limit = 10) {
-  const response = await fetch(`${API_BASE}/logs?limit=${limit}`);
-  return handleResponse(response);
+  return handleApiCall(api.get(`${API_BASE}/logs`, { params: { limit } }));
+}
+
+export async function getHistory(limit = 20) {
+  return handleApiCall(api.get(`${API_BASE}/history`, { params: { limit } }));
+}
+
+export async function saveCaseHistory(caseData) {
+  return handleApiCall(api.post(`${API_BASE}/history`, caseData));
 }
 
 export async function checkHealth() {
-  const response = await fetch('http://localhost:5000/health');
-  return handleResponse(response);
+  return handleApiCall(api.get('http://localhost:5000/health'));
 }
 
 export { ApiError };

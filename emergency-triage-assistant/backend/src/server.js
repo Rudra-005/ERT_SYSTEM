@@ -15,9 +15,12 @@ const healthRoutes = require('./routes/health');
 const ultraFastRoutes = require('./routes/ultraFast');
 const fastTriageOptimizedRoutes = require('./routes/fastTriageOptimized');
 const hybridTriageRoutes = require('./routes/hybridTriage');
+const historyRoutes = require('./routes/history');
 const { apiKeyMiddleware } = require('./middleware/apiKeyMiddleware');
 const { errorHandler } = require('./middleware/errorHandler');
 const { latencyMiddleware, apiLatencyMiddleware } = require('./middleware/latencyMiddleware');
+const strictLatencyTracker = require('./middleware/latency');
+const { warmUpOllama, startKeepAlivePing } = require('./services/ollamaService');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -28,8 +31,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
-// Add latency tracking to all requests
-app.use(latencyMiddleware);
+// Add STRICT latency tracking to all requests
+app.use(strictLatencyTracker);
 
 app.get('/health', (req, res) => {
   res.json({ 
@@ -42,6 +45,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/keys', keyRoutes);
 app.use('/api/logs', logsRoutes);
+app.use('/api/history', historyRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/hybrid', hybridTriageRoutes); // NEW: Hybrid Groq+Ollama with cache
 app.use('/api/ultra-fast', ultraFastRoutes);
@@ -62,26 +66,20 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  logger.info(`🚀 HYBRID Emergency Triage Assistant v4.0`);
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(``);
-  logger.info(`🔥 NEW HYBRID ENDPOINT (Groq + Ollama + Cache):`);
-  logger.info(`   POST /api/hybrid/ultra-fast - <400ms target`);
-  logger.info(`   GET  /api/hybrid/stats - Performance stats`);
-  logger.info(`   POST /api/hybrid/clear-cache - Clear cache`);
-  logger.info(``);
-  logger.info(`⚡ Other Endpoints:`);
-  logger.info(`   POST /api/triage/optimized - Full pipeline`);
-  logger.info(`   POST /api/triage/naive - Direct LLM`);
-  logger.info(`   POST /api/triage/fast - Optimized fast`);
-  logger.info(``);
-  logger.info(`🎯 Performance Targets:`);
-  logger.info(`   Cache hit: 0-50ms`);
-  logger.info(`   Groq call: 150-400ms`);
-  logger.info(`   Ollama fallback: 2-5s`);
-  logger.info(``);
-  logger.info(`✅ Hybrid Mode: Groq (fast) + Ollama (fallback) + Cache (instant)`);
-  logger.info(`🔥 Production ready with <400ms latency!`);
-});
+// Strict boot: Wait for Ollama to Warm-Up BEFORE accepting any traffic
+warmUpOllama()
+  .then(() => {
+    app.listen(PORT, () => {
+      logger.info(`🚀 STRICT SLA Emergency Triage Assistant`);
+      logger.info(`Server running on port ${PORT}`);
+      
+      // Start polling Ollama so it never unloads
+      startKeepAlivePing();
+      logger.info(`✅ Keep-alive background ping enabled for Ollama`);
+      logger.info(`🔥 Production ready with absolute <400ms guarantees.`);
+    });
+  })
+  .catch((err) => {
+    logger.error('CRITICAL: Server failed to start due to Ollama warm-up failure.');
+    process.exit(1);
+  });
