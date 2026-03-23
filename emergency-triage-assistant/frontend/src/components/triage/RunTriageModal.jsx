@@ -125,8 +125,13 @@ const RunTriageModal = ({ isOpen, onClose, patient, onSaveReport }) => {
       console.log('✅ Got UNIQUE response from backend:', { caseId: data.caseId, confidence: data.confidence, latency: data.latency });
 
       // Map backend response to frontend format
+      const rawPriority = String(data.riskLevel || 'LOW').toUpperCase();
+      let safePriority = 'LOW';
+      if (rawPriority.includes('HIGH') || rawPriority.includes('CRITICAL') || rawPriority.includes('EMERG')) safePriority = 'HIGH';
+      else if (rawPriority.includes('MED') || rawPriority.includes('MOD')) safePriority = 'MEDIUM';
+
       setAnalysisResult({
-        priority: data.riskLevel || 'LOW',
+        priority: safePriority,
         severityReason: data.summary || 'Analysis complete',
         immediateActions: Array.isArray(data.immediateAction) ? data.immediateAction : [data.immediateAction],
         probableDiagnosis: data.differentialDiagnosis?.[0] || 'Clinical assessment required',
@@ -136,7 +141,7 @@ const RunTriageModal = ({ isOpen, onClose, patient, onSaveReport }) => {
         latency: data.latency,
         tokenReduction: data.tokenStats?.reduction,
         caseId: data.caseId,
-        source: 'backend-ai'
+        source: data.performance?.provider || 'groq'
       });
 
     } catch (error) {

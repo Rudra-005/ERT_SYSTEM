@@ -13,6 +13,9 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'phi3:mini';
 const responseCache = new Map();
 const CACHE_TTL = 3600000; // 1 hour
 
+const STRICT_JSON_PROMPT_ADDENDUM = " Always return a complete, fully populated JSON response. Never return undefined, null, or empty string for any field. All fields — differential diagnosis, supporting evidence, recommendation, triage level, uncertainty — must be explicitly filled.";
+const ANTI_HALLUCINATION_PROMPT = " CRITICAL RULE: If the patient's complaint or symptoms are 'Nothing', 'None', empty, or show no acute distress, DO NOT invent an emergency or hallucinate distress based solely on past medical history or minor vital sign deviations. You MUST return a 'Low' priority and state 'No acute emergency' in your findings and actions.";
+
 // Performance tracking
 let stats = {
   groq: { calls: 0, totalTime: 0, errors: 0 },
@@ -35,12 +38,12 @@ function getCacheKey(input) {
  */
 function generateSmartFallback(input) {
   return {
-    immediate_action: "Manual bedside triage assessment required.",
+    immediate_action: "Manual bedside triage assessment required. Ensure airway, breathing, and circulation are structurally stable.",
     priority: "High",
-    differential_diagnosis: [{ diagnosis: "Clinical evaluation needed", probability: "High" }],
-    supporting_evidence: "AI analysis timeout - assess patient immediately.",
+    differential_diagnosis: [{ diagnosis: "Clinical evaluation needed", probability: "High", description: "Standard clinical protocols should be followed due to system delay." }],
+    supporting_evidence: "AI analysis timeout - assess patient immediately using standard emergency protocols.",
     uncertainty_level: "High",
-    case_summary: "System processing delayed, proceed with clinical assessment."
+    case_summary: "System processing delayed, proceed with hands-on clinical assessment immediately."
   };
 }
 
@@ -106,7 +109,7 @@ async function callGroq(messages, temperature = 0.1, maxTokens = 300) {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 3000 // 3s timeout for Groq API calls to ensure <400ms total latency
+        timeout: 2000 // Liberal timeout so the user's native fast models can naturally finish
       }
     );
 
@@ -150,7 +153,7 @@ async function callOllama(prompt, options = {}) {
           top_p: 0.5
         }
       },
-      { timeout: 2500 } // 2.5s timeout - must complete within 350ms race deadline
+      { timeout: 2000 }
     );
 
     const latency = Date.now() - startTime;
@@ -205,53 +208,47 @@ async function hybridCall(input, options = {}) {
   
   const ollamaPrompt = `${options.systemPrompt || 'You are an emergency triage AI.'}\n\n${input}`;
 
-  // Safety timeout - only fires if BOTH Groq and Ollama genuinely fail/hang
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      const fallback = generateSmartFallback(input);
-      resolve({
-        response: JSON.stringify(fallback),
-        latency_ms: Date.now() - totalStart,
-        provider: 'timeout-fallback',
-        fromCache: false
-      });
-    }, 10000); // 10s safety net - Groq typically responds in 300-1000ms
+  // Liberal timeout to let native fast models finish without aborting
+  const timeoutMs = 2000;
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('TIMEOUT_SLA')), timeoutMs);
   });
 
   try {
-    // Promise.race — the 300ms timeout fires first, no matter what state Groq/Ollama are in
-    const result = await Promise.race([
-      callGroq(messages, options.temperature, options.maxTokens).catch((e) => { console.log('❌ Groq race failed:', e.message); return null; }),
-      callOllama(ollamaPrompt, options).catch((e) => { console.log('❌ Ollama race failed:', e.message); return null; }),
-      timeoutPromise
+    const groqPromise = callGroq(messages, options.temperature, options.maxTokens).then(r => {
+      if (!r || !r.response) throw new Error("Empty Groq Response");
+      return r;
+    });
+
+    const ollamaPromise = callOllama(ollamaPrompt, options).then(r => {
+      if (!r || !r.response) throw new Error("Empty Ollama Response");
+      return r;
+    });
+
+    // Promise.any resolves as soon as ONE promise fulfills.
+    // If Groq fails instantly (e.g., 429), it rejects, but Promise.any WAITS for Ollama.
+    // array of Promise.race pairs ensures the strict timeout on each.
+    const result = await Promise.any([
+      Promise.race([groqPromise, timeoutPromise]),
+      Promise.race([ollamaPromise, timeoutPromise])
     ]);
     
-    console.log('🏁 Race winner:', result ? (result.provider || 'unknown') : 'null/fallback', '| Response length:', result?.response?.length || 0);
+    console.log('🏁 Race winner:', result.provider, '| Response length:', result.response.length);
     
-    // Use result or fallback if both AI providers failed fast
-  const finalResult = result || {
-    response: JSON.stringify(generateSmartFallback(input)),
-    latency_ms: Date.now() - totalStart,
-    provider: 'error-fallback',
-    fromCache: false
-  };
-
-    // Save the winner to cache if it came from a real AI provider
-    if (finalResult.provider !== 'timeout-fallback' && finalResult.provider !== 'error-fallback') {
-      saveToCache(input, finalResult);
-    }
+    saveToCache(input, result);
     
     return {
-      ...finalResult,
+      ...result,
       latency_ms: Date.now() - totalStart,
       fromCache: false
     };
   } catch (err) {
-    console.error(`❌ Hybrid AI race failed:`, err.message);
+    console.warn(`⚠️ AI Response exceeded ${timeoutMs}ms SLA or both providers failed. Returning fallback.`);
+    const fallback = generateSmartFallback(input);
     return {
-      response: '{"summary":"High priority presentation","immediate_action":"AI analysis timed out. Please use manual triage protocol.","key_findings":"Rapid assessment required","priority":"Critical"}',
+      response: JSON.stringify(fallback),
       latency_ms: Date.now() - totalStart,
-      provider: 'error-fallback',
+      provider: 'timeout-fallback',
       fromCache: false
     };
   }
@@ -267,9 +264,9 @@ async function getStructuredRecommendation(compressedHistory, emergencyDescripti
 
   try {
     const result = await hybridCall(input, {
-      systemPrompt: 'Emergency triage AI. Return ONLY valid JSON. Keys: case_summary (1-2 sentences), immediate_action (specific clinical action), differential_diagnosis (array of up to 3 diagnoses), supporting_evidence (clinical reasoning), risk_considerations (specific risks), uncertainty_level (Low/Medium/High)',
-      temperature: 0.3,
-      maxTokens: 500
+      systemPrompt: 'Emergency triage AI. ONLY JSON. Keys: case_summary (1 short sentence), immediate_action (brief action), differential_diagnosis (array of max 2 objects with diagnosis, probability, and description), supporting_evidence (brief reasoning), risk_considerations (brief risks), uncertainty_level (Low/Medium/High)' + STRICT_JSON_PROMPT_ADDENDUM + ANTI_HALLUCINATION_PROMPT + " KEEP IT AS TERSE AS POSSIBLE.",
+      temperature: 0.1,
+      maxTokens: 200
     });
 
     const totalLatency = Date.now() - startTime;
@@ -296,11 +293,12 @@ async function getStructuredRecommendation(compressedHistory, emergencyDescripti
   } catch (error) {
     console.error('Hybrid recommendation error:', error.message);
     return {
-      immediate_action: "AI service error. Consult emergency services immediately.",
-      differential_diagnosis: ["Service unavailable"],
-      supporting_evidence: "Unable to process",
-      risk_considerations: "Immediate medical evaluation required",
+      immediate_action: "AI service error. Consult emergency services immediately and ensure rapid stabilization.",
+      differential_diagnosis: [{"diagnosis": "Service unavailable", "probability": "High", "description": "Unable to process clinical data."}],
+      supporting_evidence: "Unable to process patient data. Rely on clinical judgment.",
+      risk_considerations: "Immediate medical evaluation required to ensure stability.",
       uncertainty_level: "High",
+      case_summary: "System processing failed, proceed with hands-on clinical assessment immediately.",
       error: error.message
     };
   }
@@ -372,15 +370,15 @@ function getStats() {
 async function getDetailedRecommendation(patientContext, currentVisit) {
   const startTime = Date.now();
   
-  const systemPrompt = `Emergency triage JSON response. Format: {"immediate_action":"action","priority":"Critical/High/Medium/Low","differential_diagnosis":[{"diagnosis":"name","probability":"High/Medium/Low"}],"supporting_evidence":"brief reason","uncertainty_level":"High/Medium/Low","case_summary":"1 sentence"}`;
+  const systemPrompt = `Emergency JSON. Format: {"immediate_action":"action","priority":"Critical/High/Medium/Low","differential_diagnosis":[{"diagnosis":"name","probability":"High/Medium/Low","description":"detailed clinical reasoning"}],"supporting_evidence":"comprehensive evidence","uncertainty_level":"High/Medium/Low","case_summary":"1-2 paragraph detailed clinical summary"}` + STRICT_JSON_PROMPT_ADDENDUM + ANTI_HALLUCINATION_PROMPT;
 
   const userPrompt = `H:${patientContext}\nP:${currentVisit}`;
 
   try {
     let result = await hybridCall(userPrompt, {
       systemPrompt: systemPrompt,
-      temperature: 0.8, // Increased temperature for unique, varied responses
-      maxTokens: 300 // Reduced from 800 for faster response 
+      temperature: 0.4, 
+      maxTokens: 800 // Give the AI enough tokens to actually write out detailed text
     });
 
     // Anti-duplication check
@@ -445,12 +443,13 @@ async function getDetailedRecommendation(patientContext, currentVisit) {
  */
 function parseDetailedUnstructured(content) {
   return {
-    immediate_action: "Clinical assessment required - see supporting evidence.",
+    immediate_action: "Clinical assessment required - evaluate airway, breathing, and circulation.",
     priority: "High",
-    differential_diagnosis: [{"diagnosis": "Multi-system evaluation indicated", "probability": "Medium"}],
-    supporting_evidence: content.substring(0, 500) || "AI processing produced incomplete response.",
+    differential_diagnosis: [{"diagnosis": "Multi-system evaluation indicated", "probability": "Medium", "description": "Review clinical presentation for underlying conditions."}],
+    supporting_evidence: content ? content.substring(0, 500) : "AI processing produced incomplete response. Proceed with standard empirical protocol.",
+    risk_considerations: "High-risk presentation suspected. Continuous monitoring recommended.",
     uncertainty_level: "High",
-    case_summary: "Requires manual clinical correlation."
+    case_summary: "Requires manual clinical correlation and empirical treatment."
   };
 }
 
@@ -465,7 +464,7 @@ async function getFastSummary(compressedHistory, emergencyDescription) {
 
   try {
     const result = await hybridCall(input, {
-      systemPrompt: 'ER AI. ONLY JSON. 3 words max per field. Keys: summary, immediate_action, key_findings, priority',
+      systemPrompt: 'ER AI. ONLY JSON. 3 words max per field. Keys: summary, immediate_action, key_findings, priority. ' + ANTI_HALLUCINATION_PROMPT,
       temperature: 0.01,
       maxTokens: 75 // Extreme cut for micro-second speed
     });
@@ -504,10 +503,10 @@ async function getFastSummary(compressedHistory, emergencyDescription) {
  */
 function parseFastSummaryUnstructured(content) {
   return {
-    immediate_action: content.substring(0, 100),
-    key_findings: content.substring(100, 200),
+    immediate_action: content ? content.substring(0, 100) : "Immediate clinical evaluation required.",
+    key_findings: content && content.length > 100 ? content.substring(100, 200) : "Clinical correlation aggressively indicated.",
     priority: "Urgent",
-    summary: content.substring(200, 300)
+    summary: content && content.length > 200 ? content.substring(200, 300) : "Manual triage required. Proceed with hands-on clinical assessment immediately."
   };
 }
 
